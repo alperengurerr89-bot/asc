@@ -7,7 +7,7 @@ if "GEMINI_KEY" in st.secrets:
     # Anahtarı tırnaklardan ve boşluklardan arındırarak alıyoruz
     api_key = st.secrets["GEMINI_KEY"].strip().replace('"', '').replace("'", "")
     genai.configure(api_key=api_key)
-    model = genai.GenerativeModel('models/gemini-1.5-flash')
+    model = genai.GenerativeModel('gemini-pro')
 else:
     st.error("🚨 HATA: Streamlit Secrets kısmında 'GEMINI_KEY' bulunamadı!")
     st.stop()
