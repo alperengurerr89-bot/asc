@@ -1,55 +1,45 @@
 import streamlit as st
 import google.generativeai as genai
 
-st.set_page_config(page_title="GÜRai Dedektif", page_icon="🕵️")
-st.title("🕵️ GÜRai - Model Dedektifi")
+# Sayfa Yapısı
+st.set_page_config(page_title="GÜRai Donanım Asistanı", page_icon="🛠️")
+st.title("🛠️ GÜRai: Maker Asistanı")
 
+# 1. Anahtarı Bağla
 if "GEMINI_KEY" in st.secrets:
     api_key = st.secrets["GEMINI_KEY"].strip()
     genai.configure(api_key=api_key)
+    
+    # GÜRai'ye Kimlik Tanımlıyoruz (System Instruction)
+    model = genai.GenerativeModel(
+        model_name='gemini-1.5-flash',
+        system_instruction="Senin adın GÜRai. Elektronik, lehimleme, Arduino, DC motorlar ve DIY projeleri konusunda uzmansın. Kullanıcın bir 'maker'. Sorulara teknik ama anlaşılır cevaplar ver. Devre şemaları ve bileşen seçimleri konusunda yardımcı ol."
+    )
 else:
     st.error("Secrets kısmına GEMINI_KEY ekleyin!")
     st.stop()
 
-# --- 1. ADIM: ÇALIŞAN MODELLERİ LİSTELE ---
-@st.cache_resource
-def get_available_models():
-    models = []
-    try:
-        for m in genai.list_models():
-            if 'generateContent' in m.supported_generation_methods:
-                models.append(m.name)
-        return models
-    except Exception as e:
-        st.error(f"Modeller listelenemedi: {e}")
-        return []
+# 2. Sohbet Sistemi
+if "messages" not in st.session_state:
+    st.session_state.messages = []
 
-st.write("🔎 Senin anahtarın için uygun olan modeller taranıyor...")
-uygun_modeller = get_available_models()
+for message in st.session_state.messages:
+    with st.chat_message(message["role"]):
+        st.markdown(message["content"])
 
-if uygun_modeller:
-    # Listede 'flash' veya 'pro' olanı bulmaya çalışalım
-    secilen_model = uygun_modeller[0] # Varsayılan olarak ilkini seç
-    for m in uygun_modeller:
-        if 'gemini-1.5-flash' in m:
-            secilen_model = m
-            break
-    
-    st.success(f"✅ Başarılı! Şu modelle bağlanıyoruz: {secilen_model}")
-    model = genai.GenerativeModel(secilen_model)
-else:
-    st.error("❌ Google hesabın şu an API üzerinden hiçbir modele erişim vermiyor.")
-    st.info("Bu durum genellikle Google AI Studio'daki projenin 'Generative Language API' servisiyle tam eşleşmemesinden kaynaklanır.")
-    st.stop()
-
-# --- 2. ADIM: SOHBET ---
-if prompt := st.chat_input("GÜRai'ye bir mesaj gönder..."):
+if prompt := st.chat_input("Hangi proje üzerinde çalışıyoruz?"):
+    st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.markdown(prompt)
-    
+
     with st.chat_message("assistant"):
         try:
+            # GÜRai artık bir maker uzmanı gibi cevap verecek
             response = model.generate_content(prompt)
             st.markdown(response.text)
+            st.session_state.messages.append({"role": "assistant", "content": response.text})
         except Exception as e:
-            st.error(f"Üretim Hatası: {e}")
+            if "429" in str(e):
+                st.warning("⏱️ Çok hızlı gidiyoruz! Google biraz beklememizi istiyor (30 sn).")
+            else:
+                st.error(f"Bağlantı Hatası: {e}")
