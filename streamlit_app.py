@@ -3,7 +3,7 @@ import google.generativeai as genai
 
 # Anahtarı gizli kasadan alıyoruz
 try:
-    API_KEY = st.secrets["GEMINI_KEY"]
+    API_KEY = st.secrets["AQ.Ab8RN6KwDM9hZ4pWQIk4XU3kODPCYmN6CfW9Ejh7x8I0DlbFOA"]
     genai.configure(api_key=API_KEY)
     model = genai.GenerativeModel('gemini-1.5-flash')
 except Exception as e:
