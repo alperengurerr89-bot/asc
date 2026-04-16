@@ -1,40 +1,48 @@
 import streamlit as st
 import google.generativeai as genai
 
-st.set_page_config(page_title="GÜRai", page_icon="🛠️")
-st.title("🛠️ GÜRai (Yedekli Sistem)")
+# --- SAYFA YAPILANDIRMASI ---
+st.set_page_config(page_title="GÜRai Ultra", page_icon="🛠️")
+st.title("🛠️ GÜRai: Beşli Güç Sistemi")
 
-# --- ANAHTARLARI KONTROL ET VE BAĞLAN ---
-def connect_to_genai():
-    # Mevcut tüm anahtarları listeye al
-    keys = []
-    if "GEMINI_KEY" in st.secrets:
-        keys.append(st.secrets["GEMINI_KEY"])
-    if "GEMINI_KEY_2" in st.secrets:
-        keys.append(st.secrets["GEMINI_KEY_2"])
+# --- 1. OTOMATİK ANAHTAR DÖNGÜSÜ ---
+def initialize_engine():
+    # 5 anahtarı da listeye alıyoruz
+    available_keys = [
+        st.secrets.get("GEMINI_KEY"),
+        st.secrets.get("GEMINI_KEY_2"),
+        st.secrets.get("GEMINI_KEY_3"),
+        st.secrets.get("GEMINI_KEY_4"),
+        st.secrets.get("GEMINI_KEY_5")
+    ]
     
-    for key in keys:
+    # Boş olmayanları filtrele
+    valid_keys = [k for k in available_keys if k]
+
+    for key in valid_keys:
         try:
             genai.configure(api_key=key.strip())
-            # En sağlam model ismini dene
+            # En kararlı modeli seçiyoruz
             model = genai.GenerativeModel(
                 model_name='gemini-1.5-flash',
                 system_instruction="Senin adın GÜRai. Elektronik ve DIY projeleri uzmanısın."
             )
-            # Test isteği (Kota dolup dolmadığını anlamak için)
+            # Anahtarın çalışıp çalışmadığını 1 harflik testle kontrol et
             model.generate_content("t")
-            return model # Çalışan anahtarı bulduk!
+            return model # Çalışan ilk anahtarı bulduk ve döndürdük
         except Exception:
-            continue # Bu anahtar hatalı veya kotası dolmuş, sıradakine geç
+            continue # Bu anahtar patlamış, sıradakine bak
+            
     return None
 
-model = connect_to_genai()
+model = initialize_engine()
 
+# --- 2. HATA YÖNETİMİ ---
 if model is None:
-    st.error("🚫 Tüm API anahtarlarının günlük kotası doldu. Lütfen yarın tekrar deneyin.")
+    st.error("🚫 Tüm 5 anahtarın da günlük kotası doldu. Yarın veya yeni anahtarlarla tekrar deneyin.")
     st.stop()
 
-# --- SOHBET SİSTEMİ ---
+# --- 3. SOHBET ARA YÜZÜ ---
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
@@ -42,7 +50,7 @@ for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
 
-if prompt := st.chat_input("Bir mesaj yazın..."):
+if prompt := st.chat_input("GÜRai'ye sorun..."):
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.markdown(prompt)
@@ -54,6 +62,6 @@ if prompt := st.chat_input("Bir mesaj yazın..."):
             st.session_state.messages.append({"role": "assistant", "content": response.text})
         except Exception as e:
             if "429" in str(e):
-                st.error("🚫 Bu anahtarın da kotası doldu. Lütfen sayfayı yenileyin veya yarın deneyin.")
+                st.warning("⚠️ Mevcut anahtarın kotası az önce bitti. Lütfen sayfayı yenileyerek yedek anahtara geçiş yapın.")
             else:
-                st.error(f"Bağlantı hatası: {e}")
+                st.error("⚠️ Bir bağlantı sorunu oluştu.")
