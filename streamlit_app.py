@@ -1,39 +1,23 @@
 import streamlit as st
 from openai import OpenAI
 
-# Sayfa Yapılandırması
-st.set_page_config(page_title="GÜRai", page_icon="🚀")
-st.title("🚀 GÜRai - Copilot Bağlantısı")
+st.title("🚀 GÜRai - Güvenli Mod")
 
-# Senin az önce paylaştığın yeni anahtar (Boşlukları temizleyerek)
-API_KEY = "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".strip()
-
+# Anahtarı kodun içine yazmıyoruz, Secrets'tan çekiyoruz
 try:
-    client = OpenAI(api_key=API_KEY)
-    
-    if "messages" not in st.session_state:
-        st.session_state.messages = []
+    # Bu satır anahtarı otomatik olarak Streamlit ayarlarından alır
+    client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
 
-    for message in st.session_state.messages:
-        with st.chat_message(message["role"]):
-            st.markdown(message["content"])
-
-    if prompt := st.chat_input("GÜRai'ye sor..."):
-        st.session_state.messages.append({"role": "user", "content": prompt})
-        with st.chat_message("user"):
-            st.markdown(prompt)
-
+    if prompt := st.chat_input("GÜRai hazır, sor bakalım..."):
+        st.chat_message("user").markdown(prompt)
+        
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": prompt}]
+        )
+        
         with st.chat_message("assistant"):
-            # En kararlı model olan gpt-3.5-turbo'yu deneyelim (Garanti olsun)
-            response = client.chat.completions.create(
-                model="gpt-3.5-turbo",
-                messages=[{"role": "user", "content": prompt}]
-            )
-            cevap = response.choices[0].message.content
-            st.markdown(cevap)
-            st.session_state.messages.append({"role": "assistant", "content": cevap})
+            st.markdown(response.choices[0].message.content)
 
 except Exception as e:
-    st.error(f"❌ Bağlantı Hatası: {e}")
-    if "401" in str(e):
-        st.info("İpucu: OpenAI bu anahtarı 'geçersiz' sayıyor. Lütfen yeni bir anahtar al ve buraya yapıştırma, doğrudan koduna ekle.")
+    st.error(f"Hala 401 alıyorsan anahtarın aktif değildir: {e}")
