@@ -1,7 +1,7 @@
 import streamlit as st
 import google.generativeai as genai
 
-# Senin 5 anahtarını buraya liste olarak ekliyoruz
+# Anahtarlarını buraya eksiksiz yapıştır
 API_KEYS = [
     "AQ.Ab8RN6LZEbAIPR5Ui00yx94fo_CyaDavmCOtkycNFa-TD83tjQ", 
     "AQ.Ab8RN6KQS4CKzvRGKPdLhF0MyhS4F_X2U2pizq_f8epqVOvG-w", 
@@ -11,26 +11,38 @@ API_KEYS = [
 ]
 
 def generate_with_fallback(prompt):
-    # Sırayla her anahtarı dener
-    for key in API_KEYS:
+    hatalar = []
+    for i, key in enumerate(API_KEYS):
+        # Anahtar boşsa veya tırnak içinde kalmışsa atla
+        if "ANAHTAR_" in key or len(key) < 5:
+            continue
+            
         try:
             genai.configure(api_key=key)
+            # Daha yüksek kotalı olan 'gemini-1.5-flash' modelini deniyoruz
             model = genai.GenerativeModel('gemini-1.5-flash')
             response = model.generate_content(prompt)
-            return response.text
-        except Exception:
-            # Eğer bu anahtar hata verirse (kota bittiyse vb.), bir sonrakine geçer
+            return response.text, i + 1 # Başarılı anahtar nosunu da döndür
+        except Exception as e:
+            hatalar.append(f"Anahtar {i+1} Hatası: {str(e)}")
             continue
-    return "Maalesef tüm anahtarların kotası dolmuş. Lütfen biraz bekleyin."
+    
+    # Eğer buraya kadar geldiyse hiçbir anahtar çalışmamıştır
+    st.error("Detaylı Hata Raporu:")
+    for h in hatal: st.write(h)
+    return None, None
 
-# --- Streamlit Arayüzü ---
-st.title("GÜRai: 5 Kat Güçlü Yapay Zeka")
+# --- Arayüz ---
+st.title("🤖 GÜRai Atölye")
 
 if prompt := st.chat_input("GÜRai'ye sor..."):
     with st.chat_message("user"):
         st.markdown(prompt)
     
     with st.chat_message("assistant"):
-        with st.spinner("GÜRai anahtarları kontrol ediyor..."):
-            cevap = generate_with_fallback(prompt)
+        cevap, aktif_no = generate_with_fallback(prompt)
+        if cevap:
+            st.success(f"GÜRai Aktif! (Kullanılan Güç: Anahtar {aktif_no})")
             st.markdown(cevap)
+        else:
+            st.warning("Görünüşe göre tüm yollar kapalı. Lütfen yukarıdaki hata raporuna bak.")
