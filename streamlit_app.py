@@ -1,57 +1,55 @@
 import streamlit as st
 import google.generativeai as genai
 
-# Anahtarlarını buraya eksiksiz yapıştır
-API_KEYS = [
-    "AQ.Ab8RN6LZEbAIPR5Ui00yx94fo_CyaDavmCOtkycNFa-TD83tjQ", 
-    "AQ.Ab8RN6KQS4CKzvRGKPdLhF0MyhS4F_X2U2pizq_f8epqVOvG-w", 
-    "AQ.Ab8RN6KBe-8sOzW8_gFgsLxUJzdLOdRTMWkvZKqqNaTnt1yYqw", 
-    "AQ.Ab8RN6KxerVobF7Ypxibx2_OE4eeCdxaAvv0356HoKKZmoptvg", 
-    "AQ.Ab8RN6LnRJdb6cgjap5T0ka_h27886xje4_hCSskJFaKar0elg"
-]
+st.set_page_config(page_title="GÜRai Dedektif", page_icon="🕵️")
+st.title("🕵️ GÜRai - Model Dedektifi")
 
-def generate_with_rest_api(user_prompt):
-    for i, key in enumerate(API_KEYS):
-        if "ANAHTAR_" in key or len(key) < 10:
-            continue
-            
-        # Doğrudan Google'ın kapısına gidiyoruz (Kütüphane kullanmadan)
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={key.strip()}"
-        headers = {'Content-Type': 'application/json'}
-        payload = {
-            "contents": [{
-                "parts": [{"text": user_prompt}]
-            }]
-        }
-        
-        try:
-            response = requests.post(url, headers=headers, json=payload)
-            result = response.json()
-            
-            # Eğer cevap geldiyse
-            if response.status_code == 200:
-                return result['candidates'][0]['content']['parts'][0]['text'], i + 1
-            else:
-                # Hatayı buraya yazdıralım ki ne olduğunu görelim
-                error_msg = result.get('error', {}).get('message', 'Bilinmeyen Hata')
-                print(f"Anahtar {i+1} Hatası: {error_msg}")
-                continue
-        except Exception as e:
-            continue
-            
-    return None, None
+if "GEMINI_KEY" in st.secrets:
+    api_key = st.secrets["AQ.Ab8RN6KswCKHhSH2tH0nSWE9xnvGBpI1iBdK_S7gAFzuy33dew"].strip()
+    genai.configure(api_key=api_key)
+else:
+    st.error("Secrets kısmına GEMINI_KEY ekleyin!")
+    st.stop()
 
-# --- Arayüz ---
-st.title("🤖 GÜRai Atölye (Kurtarma Modu)")
+# --- 1. ADIM: ÇALIŞAN MODELLERİ LİSTELE ---
+@st.cache_resource
+def get_available_models():
+    models = []
+    try:
+        for m in genai.list_models():
+            if 'generateContent' in m.supported_generation_methods:
+                models.append(m.name)
+        return models
+    except Exception as e:
+        st.error(f"Modeller listelenemedi: {e}")
+        return []
 
-if prompt := st.chat_input("GÜRai'ye sor..."):
+st.write("🔎 Senin anahtarın için uygun olan modeller taranıyor...")
+uygun_modeller = get_available_models()
+
+if uygun_modeller:
+    # Listede 'flash' veya 'pro' olanı bulmaya çalışalım
+    secilen_model = uygun_modeller[0] # Varsayılan olarak ilkini seç
+    for m in uygun_modeller:
+        if 'gemini-1.5-flash' in m:
+            secilen_model = m
+            break
+    
+    st.success(f"✅ Başarılı! Şu modelle bağlanıyoruz: {secilen_model}")
+    model = genai.GenerativeModel(secilen_model)
+else:
+    st.error("❌ Google hesabın şu an API üzerinden hiçbir modele erişim vermiyor.")
+    st.info("Bu durum genellikle Google AI Studio'daki projenin 'Generative Language API' servisiyle tam eşleşmemesinden kaynaklanır.")
+    st.stop()
+
+# --- 2. ADIM: SOHBET ---
+if prompt := st.chat_input("GÜRai'ye bir mesaj gönder..."):
     with st.chat_message("user"):
         st.markdown(prompt)
     
     with st.chat_message("assistant"):
-        cevap, aktif_no = generate_with_rest_api(prompt)
-        if cevap:
-            st.markdown(cevap)
-            st.caption(f"Aktif Hat: {aktif_no} (REST Modu)")
-        else:
-            st.error("Hala bağlantı kurulamıyor. Anahtarları Google AI Studio'dan tekrar kopyalamayı dene.")
+        try:
+            response = model.generate_content(prompt)
+            st.markdown(response.text)
+        except Exception as e:
+            st.error(f"Üretim Hatası: {e}")
