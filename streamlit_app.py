@@ -1,26 +1,19 @@
 import streamlit as st
-import google.generativeai as genai
+from openai import OpenAI
 
-# Bu kod, bağlantı hatalarını (401/404) engellemek için tasarlandı
-st.title("🤖 GÜRai - Kesin Bağlantı")
+st.set_page_config(page_title="GÜRai x Copilot", page_icon="🚀")
+st.title("🚀 GÜRai - Copilot Gücüyle")
 
-# Buraya kopyaladığın o uzun AIzaSy... kodunu yapıştır
-API_KEY = "AQ.Ab8RN6L2uglN_2RNxE5JancJEfRDU4_f2CrJlzq6iNWyzjEaKg"
+# OpenAI anahtarın (sk-... ile başlayan)
+client = OpenAI(api_key="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")
 
-if API_KEY != "AQ.Ab8RN6L2uglN_2RNxE5JancJEfRDU4_f2CrJlzq6iNWyzjEaKg"
-    try:
-        # transport='rest' kullanarak 'Unauthenticated' hatasını bypass ediyoruz
-        genai.configure(api_key=API_KEY.strip(), transport='rest')
-        model = genai.GenerativeModel('gemini-1.5-flash')
-        
-        if prompt := st.chat_input("Yaz bakalım, GÜRai hazır mı?"):
-            with st.chat_message("user"):
-                st.markdown(prompt)
-            with st.chat_message("assistant"):
-                response = model.generate_content(prompt)
-                st.markdown(response.text)
-                
-    except Exception as e:
-        st.error(f"Anahtar yine reddedildi: {e}")
-else:
-    st.warning("Lütfen tırnak içine API anahtarını yapıştır.")
+if prompt := st.chat_input("Copilot modunda GÜRai'ye sor..."):
+    st.chat_message("user").markdown(prompt)
+    
+    with st.chat_message("assistant"):
+        response = client.chat.completions.create(
+            model="gpt-4o", # En hızlı ve yeni model
+            messages=[{"role": "user", "content": prompt}]
+        )
+        cevap = response.choices[0].message.content
+        st.markdown(cevap)
