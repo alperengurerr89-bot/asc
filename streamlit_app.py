@@ -7,7 +7,7 @@ st.title("🤖 GÜRai - Kesin Bağlantı")
 # Buraya kopyaladığın o uzun AIzaSy... kodunu yapıştır
 API_KEY = "AQ.Ab8RN6L2uglN_2RNxE5JancJEfRDU4_f2CrJlzq6iNWyzjEaKg"
 
-if API_KEY != "AQ.Ab8RN6L2uglN_2RNxE5JancJEfRDU4_f2CrJlzq6iNWyzjEaKg":
+if API_KEY != "AQ.Ab8RN6L2uglN_2RNxE5JancJEfRDU4_f2CrJlzq6iNWyzjEaKg"
     try:
         # transport='rest' kullanarak 'Unauthenticated' hatasını bypass ediyoruz
         genai.configure(api_key=API_KEY.strip(), transport='rest')
