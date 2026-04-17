@@ -1,47 +1,39 @@
 import streamlit as st
 from openai import OpenAI
 
-# Proje Kimliği
-st.set_page_config(page_title="GÜRai x OpenAI", page_icon="🚀", layout="wide")
-st.title("🚀 GÜRai - Copilot Gücüyle Çalışıyor")
+# Sayfa Yapılandırması
+st.set_page_config(page_title="GÜRai", page_icon="🚀")
+st.title("🚀 GÜRai - Copilot Bağlantısı")
 
-# Paylaştığın anahtarı buraya güvenli bir şekilde ekliyoruz
-client = OpenAI(api_key="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")
+# Senin az önce paylaştığın yeni anahtar (Boşlukları temizleyerek)
+API_KEY = "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".strip()
 
-# Sohbet geçmişi kontrolü
-if "messages" not in st.session_state:
-    st.session_state.messages = [
-        {"role": "assistant", "content": "Selam Alperen! Copilot modunda GÜRai hazır. Ne yapıyoruz bugün?"}
-    ]
+try:
+    client = OpenAI(api_key=API_KEY)
+    
+    if "messages" not in st.session_state:
+        st.session_state.messages = []
 
-# Mesajları ekrana çiz
-for message in st.session_state.messages:
-    with st.chat_message(message["role"]):
-        st.markdown(message["content"])
+    for message in st.session_state.messages:
+        with st.chat_message(message["role"]):
+            st.markdown(message["content"])
 
-# Kullanıcı girişi
-if prompt := st.chat_input("GÜRai'ye (GPT-4o) bir şey sor..."):
-    # Kullanıcı mesajını ekle
-    st.session_state.messages.append({"role": "user", "content": prompt})
-    with st.chat_message("user"):
-        st.markdown(prompt)
+    if prompt := st.chat_input("GÜRai'ye sor..."):
+        st.session_state.messages.append({"role": "user", "content": prompt})
+        with st.chat_message("user"):
+            st.markdown(prompt)
 
-    # Yanıt üretme
-    with st.chat_message("assistant"):
-        try:
-            # En hızlı model olan gpt-4o-mini'yi kullanıyoruz
+        with st.chat_message("assistant"):
+            # En kararlı model olan gpt-3.5-turbo'yu deneyelim (Garanti olsun)
             response = client.chat.completions.create(
-                model="gpt-4o-mini",
-                messages=[
-                    {"role": "system", "content": "Senin adın GÜRai. Alperen tarafından geliştirildin. Çok zeki, yardımsever ve biraz da esprili bir asistansın."},
-                    *[{"role": m["role"], "content": m["content"]} for m in st.session_state.messages]
-                ]
+                model="gpt-3.5-turbo",
+                messages=[{"role": "user", "content": prompt}]
             )
-            full_response = response.choices[0].message.content
-            st.markdown(full_response)
-            st.session_state.messages.append({"role": "assistant", "content": full_response})
-            
-        except Exception as e:
-            st.error(f"⚠️ Bir hata oluştu: {str(e)}")
-            if "insufficient_quota" in str(e):
-                st.warning("Not: OpenAI hesabında bakiye/kredi bitmiş olabilir.")
+            cevap = response.choices[0].message.content
+            st.markdown(cevap)
+            st.session_state.messages.append({"role": "assistant", "content": cevap})
+
+except Exception as e:
+    st.error(f"❌ Bağlantı Hatası: {e}")
+    if "401" in str(e):
+        st.info("İpucu: OpenAI bu anahtarı 'geçersiz' sayıyor. Lütfen yeni bir anahtar al ve buraya yapıştırma, doğrudan koduna ekle.")
