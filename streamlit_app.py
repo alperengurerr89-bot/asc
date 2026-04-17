@@ -31,9 +31,9 @@ def generate_with_fallback(user_prompt):
             if response and response.text:
                 return response.text, i + 1
                 
-        except Exception as e:
-            # Bu anahtar hata verirse (kota bittiyse vb.) konsola yaz ve sonrakine geç
-            print(f"Sistem Notu: Anahtar {i+1} şu an uykuda. Bir sonraki deneniyor...")
+except Exception as e:
+            # Burası çok önemli! Hatayı ekrana yazdır ki ne olduğunu görelim:
+            st.warning(f"Sistem Notu: Anahtar {i+1} şu hatayı verdi: {str(e)}")
             continue
     
     # Eğer döngü biter ve hiç cevap dönmezse None döndür
