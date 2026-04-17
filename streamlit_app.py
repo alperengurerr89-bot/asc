@@ -1,55 +1,50 @@
 import streamlit as st
-import google.generativeai as genai
+import requests
 
-st.set_page_config(page_title="GÜRai Dedektif", page_icon="🕵️")
-st.title("🕵️ GÜRai - Model Dedektifi")
+# Sayfa Başlığı
+st.set_page_config(page_title="GÜRai Atölye", page_icon="🤖")
+st.title("🤖 GÜRai - Kesin Çözüm")
 
-if "GEMINI_KEY" in st.secrets:
-    api_key = st.secrets["AQ.Ab8RN6KswCKHhSH2tH0nSWE9xnvGBpI1iBdK_S7gAFzuy33dew"].strip()
-    genai.configure(api_key=api_key)
-else:
-    st.error("Secrets kısmına GEMINI_KEY ekleyin!")
-    st.stop()
-
-# --- 1. ADIM: ÇALIŞAN MODELLERİ LİSTELE ---
-@st.cache_resource
-def get_available_models():
-    models = []
-    try:
-        for m in genai.list_models():
-            if 'generateContent' in m.supported_generation_methods:
-                models.append(m.name)
-        return models
-    except Exception as e:
-        st.error(f"Modeller listelenemedi: {e}")
-        return []
-
-st.write("🔎 Senin anahtarın için uygun olan modeller taranıyor...")
-uygun_modeller = get_available_models()
-
-if uygun_modeller:
-    # Listede 'flash' veya 'pro' olanı bulmaya çalışalım
-    secilen_model = uygun_modeller[0] # Varsayılan olarak ilkini seç
-    for m in uygun_modeller:
-        if 'gemini-1.5-flash' in m:
-            secilen_model = m
-            break
+# O elindeki "AQ." ile başlayan uzun kodu buraya yapıştır
+# Not: Bu kod yaklaşık 1 saat çalışır, sonra yenilemen gerekir.
+TOKEN = "AQ.Ab8RN6KswCKHhSH2tH0nSWE9xnvGBpI1iBdK_S7gAFzuy33dew"
+def gurai_cevap_ver(soru):
+    # Google'ın ana kapısı (REST API)
+    url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent"
     
-    st.success(f"✅ Başarılı! Şu modelle bağlanıyoruz: {secilen_model}")
-    model = genai.GenerativeModel(secilen_model)
-else:
-    st.error("❌ Google hesabın şu an API üzerinden hiçbir modele erişim vermiyor.")
-    st.info("Bu durum genellikle Google AI Studio'daki projenin 'Generative Language API' servisiyle tam eşleşmemesinden kaynaklanır.")
-    st.stop()
+    # AQ kodları 'Bearer' başlığıyla gönderilir
+    headers = {
+        "Authorization": f"Bearer {TOKEN}",
+        "Content-Type": "application/json"
+    }
+    
+    payload = {
+        "contents": [{"parts": [{"text": soru}]}]
+    }
 
-# --- 2. ADIM: SOHBET ---
-if prompt := st.chat_input("GÜRai'ye bir mesaj gönder..."):
+    try:
+        response = requests.post(url, json=payload, headers=headers)
+        if response.status_code == 200:
+            return response.json()['candidates'][0]['content']['parts'][0]['text']
+        else:
+            return f"Hata: {response.status_code} - {response.text}"
+    except Exception as e:
+        return f"Sistem hatası: {str(e)}"
+
+# --- Arayüz ---
+if "messages" not in st.session_state:
+    st.session_state.messages = []
+
+for msg in st.session_state.messages:
+    with st.chat_message(msg["role"]):
+        st.markdown(msg["content"])
+
+if prompt := st.chat_input("GÜRai'ye yaz..."):
+    st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.markdown(prompt)
-    
+
     with st.chat_message("assistant"):
-        try:
-            response = model.generate_content(prompt)
-            st.markdown(response.text)
-        except Exception as e:
-            st.error(f"Üretim Hatası: {e}")
+        cevap = gurai_cevap_ver(prompt)
+        st.markdown(cevap)
+        st.session_state.messages.append({"role": "assistant", "content": cevap})
