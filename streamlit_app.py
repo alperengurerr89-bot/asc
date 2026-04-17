@@ -10,49 +10,62 @@ API_KEYS = [
     "AQ.Ab8RN6LnRJdb6cgjap5T0ka_h27886xje4_hCSskJFaKar0elg"
 ]
 
+# --- 1. FONKSİYON: ANAHTARLARI SIRAYLA DENEYEN MEKANİZMA ---
 def generate_with_fallback(user_prompt):
-    # Bu liste, anahtarları sırayla deneyecek
     for i, key in enumerate(API_KEYS):
-        # Geçersiz veya boş anahtarları kontrol et
+        # Geçersiz veya boş anahtarları atla
         if "ANAHTAR_" in key or len(key) < 10:
             continue
             
         try:
-            # Mevcut anahtarı yapılandır
+            # Mevcut anahtarı ayarla
             genai.configure(api_key=key)
             
             # Kotaları daha geniş olan 1.5-flash modelini kullanıyoruz
-            model = genai.GenerativeModel('gemini-1.5-pro')
+            model = genai.GenerativeModel('gemini-1.5-flash')
             
             # Cevabı almayı dene
             response = model.generate_content(user_prompt)
             
-            # Eğer cevap başarılıysa metni ve hangi anahtarın çalıştığını döndür
             if response and response.text:
                 return response.text, i + 1
                 
-except Exception as e:
-            # Burası çok önemli! Hatayı ekrana yazdır ki ne olduğunu görelim:
-            st.warning(f"Sistem Notu: Anahtar {i+1} şu hatayı verdi: {str(e)}")
+        except Exception as e:
+            # Hata varsa konsola yaz (st.error değil, sistem içine yazar)
+            print(f"Anahtar {i+1} başarısız: {e}")
             continue
     
-    # Eğer döngü biter ve hiç cevap dönmezse None döndür
     return None, None
 
-# --- Arayüz ve Sohbet Bölümü ---
+# --- 2. ARAYÜZ VE SOHBET GEÇMİŞİ ---
 st.title("🤖 GÜRai Atölye")
 
+# Mesaj geçmişini başlat (Hafıza)
+if "messages" not in st.session_state:
+    st.session_state.messages = []
+
+# Eski mesajları ekranda göster
+for message in st.session_state.messages:
+    with st.chat_message(message["role"]):
+        st.markdown(message["content"])
+
+# --- 3. KULLANICI GİRİŞİ VE CEVAPLAMA ---
 if prompt := st.chat_input("GÜRai'ye bir soru sor..."):
+    # Kullanıcı mesajını ekle
+    st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.markdown(prompt)
     
+    # GÜRai cevabını oluştur
     with st.chat_message("assistant"):
-        # Yukarıdaki fonksiyonu çağırıyoruz
-        cevap, aktif_no = generate_with_fallback(prompt)
-        
-        if cevap:
-            st.markdown(cevap)
-            st.caption(f"Güç Kaynağı: Hat {aktif_no} aktif.")
-        else:
-            # Tüm anahtarlar başarısız olursa çıkacak mesaj
-            st.error("Görünüşe göre tüm API anahtarlarının günlük sınırı dolmuş veya bir bağlantı sorunu var. Lütfen 15-20 dakika sonra tekrar dene.")
+        with st.spinner("GÜRai veri tabanına bağlanıyor..."):
+            cevap, aktif_no = generate_with_fallback(prompt)
+            
+            if cevap:
+                st.markdown(cevap)
+                st.caption(f"⚡ Kaynak: Hat {aktif_no}")
+                st.session_state.messages.append({"role": "assistant", "content": cevap})
+            else:
+                # Tüm anahtarlar çökerse bu mesaj çıkar
+                st.error("Görünüşe göre tüm yollar kapalı.")
+                st.info("💡 ÇÖZÜM: Bilgisayarı telefonunun mobil verisine bağla ve sayfayı yenile!")
