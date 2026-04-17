@@ -1,67 +1,60 @@
 import streamlit as st
 import google.generativeai as genai
 
-# --- SAYFA YAPILANDIRMASI ---
-st.set_page_config(page_title="GÜRai Ultra", page_icon="🛠️")
-st.title("🛠️ GÜRai: Beşli Güç Sistemi")
+# Sayfa Konfigürasyonu (Tarayıcı sekmesindeki isim ve ikon)
+st.set_page_config(page_title="GÜRai Atölye", page_icon="🤖", layout="centered")
 
-# --- 1. OTOMATİK ANAHTAR DÖNGÜSÜ ---
-def initialize_engine():
-    # 5 anahtarı da listeye alıyoruz
-    available_keys = [
-        st.secrets.get("GEMINI_KEY"),
-        st.secrets.get("GEMINI_KEY_2"),
-        st.secrets.get("GEMINI_KEY_3"),
-        st.secrets.get("GEMINI_KEY_4"),
-        st.secrets.get("GEMINI_KEY_5")
-    ]
-    
-    # Boş olmayanları filtrele
-    valid_keys = [k for k in available_keys if k]
+# GÜRai Tasarımı (CSS ile fütüristik görünüm)
+st.markdown("""
+    <style>
+    .main {
+        background-color: #0e1117;
+    }
+    .stTextInput > div > div > input {
+        color: #00d4ff;
+    }
+    h1 {
+        color: #00d4ff;
+        text-align: center;
+        font-family: 'Courier New', Courier, monospace;
+    }
+    </style>
+    """, unsafe_allow_html=True)
 
-    for key in valid_keys:
-        try:
-            genai.configure(api_key=key.strip())
-            # En kararlı modeli seçiyoruz
-            model = genai.GenerativeModel(
-                model_name='gemini-1.5-flash',
-                system_instruction="Senin adın GÜRai. Elektronik ve DIY projeleri uzmanısın."
-            )
-            # Anahtarın çalışıp çalışmadığını 1 harflik testle kontrol et
-            model.generate_content("t")
-            return model # Çalışan ilk anahtarı bulduk ve döndürdük
-        except Exception:
-            continue # Bu anahtar patlamış, sıradakine bak
-            
-    return None
+st.title("GÜRai: Yeni Nesil Yapay Zeka")
 
-model = initialize_engine()
+# API Anahtarı Ayarı (Kendi anahtarını buraya ekle)
+# genai.configure(api_key="SENIN_API_ANAHTARIN")
 
-# --- 2. HATA YÖNETİMİ ---
-if model is None:
-    st.error("🚫 Tüm 5 anahtarın da günlük kotası doldu. Yarın veya yeni anahtarlarla tekrar deneyin.")
-    st.stop()
+# Model Ayarları
+model = genai.GenerativeModel('gemini-pro')
 
-# --- 3. SOHBET ARA YÜZÜ ---
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
+# Eski mesajları ekranda tut (Farklı tarayıcı oturumları için)
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
 
-if prompt := st.chat_input("GÜRai'ye sorun..."):
+# Kullanıcıdan soru al
+if prompt := st.chat_input("GÜRai'ye bir soru sor (Matematik, Kod, Elektronik...)"):
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.markdown(prompt)
 
     with st.chat_message("assistant"):
+        message_placeholder = st.empty()
+        full_response = ""
+        
         try:
+            # Yapay zekadan cevap al
             response = model.generate_content(prompt)
-            st.markdown(response.text)
-            st.session_state.messages.append({"role": "assistant", "content": response.text})
+            full_response = response.text
+            message_placeholder.markdown(full_response)
         except Exception as e:
-            if "429" in str(e):
-                st.warning("⚠️ Mevcut anahtarın kotası az önce bitti. Lütfen sayfayı yenileyerek yedek anahtara geçiş yapın.")
-            else:
-                st.error("⚠️ Bir bağlantı sorunu oluştu.")
+            # Hata durumunda (Kota veya teknik sorun) kullanıcıya bilgi ver
+            full_response = "Sistem şu an çok yoğun veya kota sınırında. Lütfen biraz bekleyip tekrar dene."
+            message_placeholder.error(full_response)
+            
+        st.session_state.messages.append({"role": "assistant", "content": full_response})
