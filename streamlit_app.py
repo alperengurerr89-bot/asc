@@ -22,7 +22,7 @@ def generate_with_fallback(user_prompt):
             genai.configure(api_key=key)
             
             # Kotaları daha geniş olan 1.5-flash modelini kullanıyoruz
-            model = genai.GenerativeModel('gemini-1.5-flash')
+            model = genai.GenerativeModel('gemini-1.5-pro')
             
             # Cevabı almayı dene
             response = model.generate_content(user_prompt)
