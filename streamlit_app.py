@@ -10,56 +10,48 @@ API_KEYS = [
     "AQ.Ab8RN6LnRJdb6cgjap5T0ka_h27886xje4_hCSskJFaKar0elg"
 ]
 
-# --- 1. FONKSİYON: ANAHTARLARI SIRAYLA DENEYEN MEKANİZMA ---
-def generate_with_fallback(user_prompt):
+def generate_with_rest_api(user_prompt):
     for i, key in enumerate(API_KEYS):
         if "ANAHTAR_" in key or len(key) < 10:
             continue
             
+        # Doğrudan Google'ın kapısına gidiyoruz (Kütüphane kullanmadan)
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={key.strip()}"
+        headers = {'Content-Type': 'application/json'}
+        payload = {
+            "contents": [{
+                "parts": [{"text": user_prompt}]
+            }]
+        }
+        
         try:
-            # ÖNEMLİ: transport='rest' ekleyerek OAuth hatasını devre dışı bırakıyoruz
-            genai.configure(api_key=key.strip(), transport='rest') 
+            response = requests.post(url, headers=headers, json=payload)
+            result = response.json()
             
-            model = genai.GenerativeModel('gemini-1.5-flash')
-            response = model.generate_content(user_prompt)
-            
-            if response and response.text:
-                return response.text, i + 1
-                
+            # Eğer cevap geldiyse
+            if response.status_code == 200:
+                return result['candidates'][0]['content']['parts'][0]['text'], i + 1
+            else:
+                # Hatayı buraya yazdıralım ki ne olduğunu görelim
+                error_msg = result.get('error', {}).get('message', 'Bilinmeyen Hata')
+                print(f"Anahtar {i+1} Hatası: {error_msg}")
+                continue
         except Exception as e:
-            st.warning(f"Sistem Notu (Anahtar {i+1}): {str(e)}")
             continue
-    
+            
     return None, None
-# --- 2. ARAYÜZ VE SOHBET GEÇMİŞİ ---
-st.title("🤖 GÜRai Atölye")
 
-# Mesaj geçmişini başlat (Hafıza)
-if "messages" not in st.session_state:
-    st.session_state.messages = []
+# --- Arayüz ---
+st.title("🤖 GÜRai Atölye (Kurtarma Modu)")
 
-# Eski mesajları ekranda göster
-for message in st.session_state.messages:
-    with st.chat_message(message["role"]):
-        st.markdown(message["content"])
-
-# --- 3. KULLANICI GİRİŞİ VE CEVAPLAMA ---
-if prompt := st.chat_input("GÜRai'ye bir soru sor..."):
-    # Kullanıcı mesajını ekle
-    st.session_state.messages.append({"role": "user", "content": prompt})
+if prompt := st.chat_input("GÜRai'ye sor..."):
     with st.chat_message("user"):
         st.markdown(prompt)
     
-    # GÜRai cevabını oluştur
     with st.chat_message("assistant"):
-        with st.spinner("GÜRai veri tabanına bağlanıyor..."):
-            cevap, aktif_no = generate_with_fallback(prompt)
-            
-            if cevap:
-                st.markdown(cevap)
-                st.caption(f"⚡ Kaynak: Hat {aktif_no}")
-                st.session_state.messages.append({"role": "assistant", "content": cevap})
-            else:
-                # Tüm anahtarlar çökerse bu mesaj çıkar
-                st.error("Görünüşe göre tüm yollar kapalı.")
-                st.info("💡 ÇÖZÜM: Bilgisayarı telefonunun mobil verisine bağla ve sayfayı yenile!")
+        cevap, aktif_no = generate_with_rest_api(prompt)
+        if cevap:
+            st.markdown(cevap)
+            st.caption(f"Aktif Hat: {aktif_no} (REST Modu)")
+        else:
+            st.error("Hala bağlantı kurulamıyor. Anahtarları Google AI Studio'dan tekrar kopyalamayı dene.")
