@@ -1,60 +1,36 @@
 import streamlit as st
 import google.generativeai as genai
 
-# Sayfa Konfigürasyonu (Tarayıcı sekmesindeki isim ve ikon)
-st.set_page_config(page_title="GÜRai Atölye", page_icon="🤖", layout="centered")
+# Senin 5 anahtarını buraya liste olarak ekliyoruz
+API_KEYS = [
+    "AQ.Ab8RN6LZEbAIPR5Ui00yx94fo_CyaDavmCOtkycNFa-TD83tjQ", 
+    "AQ.Ab8RN6KQS4CKzvRGKPdLhF0MyhS4F_X2U2pizq_f8epqVOvG-w", 
+    "AQ.Ab8RN6KBe-8sOzW8_gFgsLxUJzdLOdRTMWkvZKqqNaTnt1yYqw", 
+    "AQ.Ab8RN6KxerVobF7Ypxibx2_OE4eeCdxaAvv0356HoKKZmoptvg", 
+    "AQ.Ab8RN6LnRJdb6cgjap5T0ka_h27886xje4_hCSskJFaKar0elg"
+]
 
-# GÜRai Tasarımı (CSS ile fütüristik görünüm)
-st.markdown("""
-    <style>
-    .main {
-        background-color: #0e1117;
-    }
-    .stTextInput > div > div > input {
-        color: #00d4ff;
-    }
-    h1 {
-        color: #00d4ff;
-        text-align: center;
-        font-family: 'Courier New', Courier, monospace;
-    }
-    </style>
-    """, unsafe_allow_html=True)
+def generate_with_fallback(prompt):
+    # Sırayla her anahtarı dener
+    for key in API_KEYS:
+        try:
+            genai.configure(api_key=key)
+            model = genai.GenerativeModel('gemini-pro')
+            response = model.generate_content(prompt)
+            return response.text
+        except Exception:
+            # Eğer bu anahtar hata verirse (kota bittiyse vb.), bir sonrakine geçer
+            continue
+    return "Maalesef tüm anahtarların kotası dolmuş. Lütfen biraz bekleyin."
 
-st.title("GÜRai: Yeni Nesil Yapay Zeka")
+# --- Streamlit Arayüzü ---
+st.title("GÜRai: 5 Kat Güçlü Yapay Zeka")
 
-# API Anahtarı Ayarı (Kendi anahtarını buraya ekle)
-# genai.configure(api_key="SENIN_API_ANAHTARIN")
-
-# Model Ayarları
-model = genai.GenerativeModel('gemini-pro')
-
-if "messages" not in st.session_state:
-    st.session_state.messages = []
-
-# Eski mesajları ekranda tut (Farklı tarayıcı oturumları için)
-for message in st.session_state.messages:
-    with st.chat_message(message["role"]):
-        st.markdown(message["content"])
-
-# Kullanıcıdan soru al
-if prompt := st.chat_input("GÜRai'ye bir soru sor (Matematik, Kod, Elektronik...)"):
-    st.session_state.messages.append({"role": "user", "content": prompt})
+if prompt := st.chat_input("GÜRai'ye sor..."):
     with st.chat_message("user"):
         st.markdown(prompt)
-
+    
     with st.chat_message("assistant"):
-        message_placeholder = st.empty()
-        full_response = ""
-        
-        try:
-            # Yapay zekadan cevap al
-            response = model.generate_content(prompt)
-            full_response = response.text
-            message_placeholder.markdown(full_response)
-        except Exception as e:
-            # Hata durumunda (Kota veya teknik sorun) kullanıcıya bilgi ver
-            full_response = "Sistem şu an çok yoğun veya kota sınırında. Lütfen biraz bekleyip tekrar dene."
-            message_placeholder.error(full_response)
-            
-        st.session_state.messages.append({"role": "assistant", "content": full_response})
+        with st.spinner("GÜRai anahtarları kontrol ediyor..."):
+            cevap = generate_with_fallback(prompt)
+            st.markdown(cevap)
