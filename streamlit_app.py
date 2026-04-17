@@ -31,8 +31,7 @@ def generate_with_fallback(user_prompt):
                 return response.text, i + 1
                 
         except Exception as e:
-            # Hata varsa konsola yaz (st.error değil, sistem içine yazar)
-            print(f"Anahtar {i+1} başarısız: {e}")
+            st.warning(f"Sistem Uyarısı (Anahtar {i+1}): {str(e)}") # Bu satırı ekle
             continue
     
     return None, None
