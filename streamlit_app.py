@@ -6,7 +6,7 @@ st.set_page_config(page_title="GÜRai", page_icon="🚀")
 st.title("🚀 GÜRai - Copilot Bağlantısı")
 
 # Senin az önce paylaştığın yeni anahtar (Boşlukları temizleyerek)
-API_KEY = "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".strip()
+API_KEY = "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".strip()
 
 try:
     client = OpenAI(api_key=API_KEY)
