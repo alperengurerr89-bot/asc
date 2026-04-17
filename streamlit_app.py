@@ -10,39 +10,49 @@ API_KEYS = [
     "AQ.Ab8RN6LnRJdb6cgjap5T0ka_h27886xje4_hCSskJFaKar0elg"
 ]
 
-def generate_with_fallback(prompt):
-    hatalar = []
+def generate_with_fallback(user_prompt):
+    # Bu liste, anahtarları sırayla deneyecek
     for i, key in enumerate(API_KEYS):
-        # Anahtar boşsa veya tırnak içinde kalmışsa atla
-        if "ANAHTAR_" in key or len(key) < 5:
+        # Geçersiz veya boş anahtarları kontrol et
+        if "ANAHTAR_" in key or len(key) < 10:
             continue
             
         try:
+            # Mevcut anahtarı yapılandır
             genai.configure(api_key=key)
-            # Daha yüksek kotalı olan 'gemini-1.5-flash' modelini deniyoruz
+            
+            # Kotaları daha geniş olan 1.5-flash modelini kullanıyoruz
             model = genai.GenerativeModel('gemini-1.5-flash')
-            response = model.generate_content(prompt)
-            return response.text, i + 1 # Başarılı anahtar nosunu da döndür
+            
+            # Cevabı almayı dene
+            response = model.generate_content(user_prompt)
+            
+            # Eğer cevap başarılıysa metni ve hangi anahtarın çalıştığını döndür
+            if response and response.text:
+                return response.text, i + 1
+                
         except Exception as e:
-            hatalar.append(f"Anahtar {i+1} Hatası: {str(e)}")
+            # Bu anahtar hata verirse (kota bittiyse vb.) konsola yaz ve sonrakine geç
+            print(f"Sistem Notu: Anahtar {i+1} şu an uykuda. Bir sonraki deneniyor...")
             continue
     
-    # Eğer buraya kadar geldiyse hiçbir anahtar çalışmamıştır
-    st.error("Detaylı Hata Raporu:")
-    for h in hatal: st.write(h)
+    # Eğer döngü biter ve hiç cevap dönmezse None döndür
     return None, None
 
-# --- Arayüz ---
+# --- Arayüz ve Sohbet Bölümü ---
 st.title("🤖 GÜRai Atölye")
 
-if prompt := st.chat_input("GÜRai'ye sor..."):
+if prompt := st.chat_input("GÜRai'ye bir soru sor..."):
     with st.chat_message("user"):
         st.markdown(prompt)
     
     with st.chat_message("assistant"):
+        # Yukarıdaki fonksiyonu çağırıyoruz
         cevap, aktif_no = generate_with_fallback(prompt)
+        
         if cevap:
-            st.success(f"GÜRai Aktif! (Kullanılan Güç: Anahtar {aktif_no})")
             st.markdown(cevap)
+            st.caption(f"Güç Kaynağı: Hat {aktif_no} aktif.")
         else:
-            st.warning("Görünüşe göre tüm yollar kapalı. Lütfen yukarıdaki hata raporuna bak.")
+            # Tüm anahtarlar başarısız olursa çıkacak mesaj
+            st.error("Görünüşe göre tüm API anahtarlarının günlük sınırı dolmuş veya bir bağlantı sorunu var. Lütfen 15-20 dakika sonra tekrar dene.")
