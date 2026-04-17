@@ -13,29 +13,24 @@ API_KEYS = [
 # --- 1. FONKSİYON: ANAHTARLARI SIRAYLA DENEYEN MEKANİZMA ---
 def generate_with_fallback(user_prompt):
     for i, key in enumerate(API_KEYS):
-        # Geçersiz veya boş anahtarları atla
         if "ANAHTAR_" in key or len(key) < 10:
             continue
             
         try:
-            # Mevcut anahtarı ayarla
-            genai.configure(api_key=key)
+            # ÖNEMLİ: transport='rest' ekleyerek OAuth hatasını devre dışı bırakıyoruz
+            genai.configure(api_key=key.strip(), transport='rest') 
             
-            # Kotaları daha geniş olan 1.5-flash modelini kullanıyoruz
-            model = genai.GenerativeModel('gemini-1.5-pro')
-            
-            # Cevabı almayı dene
+            model = genai.GenerativeModel('gemini-1.5-flash')
             response = model.generate_content(user_prompt)
             
             if response and response.text:
                 return response.text, i + 1
                 
         except Exception as e:
-            st.warning(f"Sistem Uyarısı (Anahtar {i+1}): {str(e)}") # Bu satırı ekle
+            st.warning(f"Sistem Notu (Anahtar {i+1}): {str(e)}")
             continue
     
     return None, None
-
 # --- 2. ARAYÜZ VE SOHBET GEÇMİŞİ ---
 st.title("🤖 GÜRai Atölye")
 
